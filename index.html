@@ -93,8 +93,9 @@ select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-
 </div>
 
 <div class="md hide" id="mdep"><div class="c"><b>💳 Deposit</b>
+ <input id="dphone" type="tel" inputmode="tel" placeholder="Phone number (e.g. 0712345678)">
  <input id="damt" type="number" min="500" step="500" value="1000" placeholder="Amount (TZS, min 500)">
- <button class="go" id="dgo">Continue to pay (Abliner)</button>
+ <button class="go" id="dgo">Send push to my phone</button>
  <button class="ch" style="margin-top:10px;width:100%" data-x>Close</button><div class="mu" id="dmsg" style="margin-top:8px"></div></div></div>
 <div class="md hide" id="mwd"><div class="c"><b>💸 Withdraw</b>
  <select id="wm"><option value="mobile">Mobile money</option><option value="bank">Bank</option></select>
@@ -193,8 +194,20 @@ document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>b.closest('.md').
 $('dep').onclick=()=>$('mdep').classList.remove('hide');
 $('wd').onclick=()=>$('mwd').classList.remove('hide');
 $('wm').onchange=()=>document.querySelectorAll('.bk').forEach(e=>e.classList.toggle('hide',$('wm').value!=='bank'));
-$('dgo').onclick=async()=>{$('dgo').disabled=true;const r=await call('checkout',{amount:+$('damt').value});$('dgo').disabled=false;
- if(r.error||!r.data.checkout_url){$('dmsg').textContent=r.error||'Failed';return}location.href=r.data.checkout_url};
+let depPoll=null;
+$('dgo').onclick=async()=>{
+ $('dgo').disabled=true;$('dmsg').textContent='Sending push…';
+ const r=await call('checkout',{amount:+$('damt').value,phone:$('dphone').value.trim()});
+ if(r.error){$('dgo').disabled=false;$('dmsg').textContent=r.error;return}
+ $('dmsg').textContent=r.data.message||'Check your phone and approve the payment.';
+ if(depPoll)clearInterval(depPoll);
+ depPoll=setInterval(async()=>{
+  const {data}=await sb.from('deposits').select('status').eq('reference',r.data.reference).single();
+  if(data?.status==='paid'){clearInterval(depPoll);depPoll=null;$('dmsg').textContent='Payment received ✓';$('dgo').disabled=false;refresh();setTimeout(()=>$('mdep').classList.add('hide'),1500)}
+  else if(data?.status==='failed'){clearInterval(depPoll);depPoll=null;$('dgo').disabled=false;$('dmsg').textContent='Payment failed, please try again.'}
+ },3000);
+ setTimeout(()=>{if(depPoll){clearInterval(depPoll);depPoll=null;$('dgo').disabled=false;if($('dmsg').textContent.includes('Check your phone'))$('dmsg').textContent='Still waiting — try again if you did not get the prompt.'}},90000);
+};
 $('wgo').onclick=async()=>{$('wgo').disabled=true;
  const r=await call('withdraw',{amount:+$('wa').value,method:$('wm').value,recipient:$('wr').value.trim(),bank_code:$('wb').value,account_name:$('wn').value.trim()});
  $('wgo').disabled=false;$('wmsg').textContent=r.error||(r.data.pending?'Request received, under review':'Request sent ✓');refresh()};
