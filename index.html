@@ -66,12 +66,17 @@ select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-
  <b>Log in / Sign up</b>
  <input id="em" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number (e.g. 0712345678)"><input id="pw" type="password" placeholder="Password (min 6)">
  <input id="dob" type="date"><div class="mu" style="margin-top:6px">Date of birth (sign-up only, 18+)</div>
+ <input id="invc" placeholder="Invite / referral code (optional)" style="text-transform:uppercase">
  <div class="g2"><button class="go" id="in">Log in</button><button class="go" id="up">Sign up</button></div>
 </div>
 
 <div id="app" class="hide">
  <div class="c f"><div><div class="mu">💰 Balance</div><b id="bal">0</b></div>
-  <div><button class="ch" id="dep">Deposit</button> <button class="ch" id="wd">Withdraw</button> <button class="ch" id="out">Toka</button></div></div>
+  <div><button class="ch" id="dep">Deposit</button> <button class="ch" id="wd">Withdraw</button> <button class="ch" id="out">Log out</button></div></div>
+ <div class="c f">
+  <div><div class="mu">🎁 Daily bonus</div><button class="ch" id="daily">Claim</button></div>
+  <div style="text-align:right"><div class="mu">👥 Your referral code</div><b id="mycode" style="cursor:pointer" title="Tap to copy">…</b></div>
+ </div>
  <div class="c">
   <div class="g2" style="grid-template-columns:repeat(4,1fr);margin:0" id="rooms"></div>
   <div class="mu" style="text-align:center;margin-top:12px" id="rid"></div>
@@ -84,9 +89,11 @@ select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-
   <div class="g2"><button class="o" data-k="odd">Odd</button><button class="o" data-k="even">Even</button>
    <button class="o" data-k="big">Big (5-9)</button><button class="o" data-k="small">Small (0-4)</button></div>
   <div class="g5" id="nums"></div>
-  <div class="f" style="margin-top:10px"><input id="amt" type="number" value="1000" min="500" step="500" style="margin:0"></div>
+  <div class="f" style="margin-top:10px"><input id="amt" type="number" value="1000" min="500" max="50000" step="500" style="margin:0"></div>
+  <div class="mu" style="text-align:right;margin-top:4px">Max bet: TZS 50,000</div>
   <button class="go" id="bet">Place bet</button><div class="mu" id="msg" style="text-align:center;margin-top:8px"></div>
  </div>
+ <div class="c"><b>🏆 Today's top winners</b><div id="lead" class="mu">Loading…</div></div>
  <div class="c col2"><b>📜 My bets</b><div id="hist"></div></div>
 </div>
 <div class="mu" style="text-align:center">18+ only. Play responsibly.</div>
@@ -106,14 +113,30 @@ select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-
  <button class="go" id="wgo">Submit request</button>
  <button class="ch" style="margin-top:10px;width:100%" data-x>Close</button><div class="mu" id="wmsg" style="margin-top:8px"></div></div></div>
 <div class="md hide" id="adm"><div class="c"><div class="f"><b>🛠 Admin NUMBERNOVA</b><button class="ch" data-x>Close</button></div>
- <div class="sg" id="ast"></div><b>Players</b><div id="au"></div>
+ <div class="sg" id="ast"></div>
+ <b style="display:block;margin-top:14px">⚙️ Bonus amounts</b>
+ <div class="g2" style="grid-template-columns:1fr 1fr 1fr">
+  <div><div class="mu">Daily bonus</div><input id="sDaily" type="number" style="margin:4px 0"></div>
+  <div><div class="mu">Referral: inviter gets</div><input id="sRefr" type="number" style="margin:4px 0"></div>
+  <div><div class="mu">Referral: new player gets</div><input id="sRefe" type="number" style="margin:4px 0"></div>
+ </div>
+ <button class="ch" id="sSave">Save amounts</button>
+ <b style="display:block;margin-top:14px">🎟 Invite codes</b>
+ <div class="g2" style="grid-template-columns:1fr 1fr 1fr auto">
+  <input id="icCode" placeholder="CODE" style="margin:0;text-transform:uppercase">
+  <input id="icBonus" type="number" placeholder="Bonus TZS" style="margin:0">
+  <input id="icUses" type="number" placeholder="Max uses" value="1" style="margin:0">
+  <button class="ch" id="icGo">Create</button>
+ </div>
+ <div id="icList" style="margin-top:8px"></div>
+ <b>Players</b><div id="au"></div>
  <b style="display:block;margin-top:14px">Recent deposits</b><div id="adp"></div>
  <b style="display:block;margin-top:14px">Recent withdrawals</b><div id="awd"></div></div></div>
 
 <script>
 const SUPABASE_URL='https://xrgltdkkpleliqegoqha.supabase.co', SUPABASE_KEY='sb_publishable_yZZLusAInZ7-8bsUgIXswA_mro0CHAj';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const $=i=>document.getElementById(i), S={room:1,sel:null,round:null,off:0,busy:false};
+const $=i=>document.getElementById(i), S={room:1,sel:null,round:null,off:0,busy:false,seenWin:new Set(),seenWinReady:false};
 const msg=t=>$('msg').textContent=t, fmt=n=>Math.round(n).toLocaleString('en-US');
 const lbl=b=>b.kind==='num'?'Number '+b.pick:{odd:'Odd',even:'Even',big:'Big',small:'Small'}[b.kind];
 
@@ -137,6 +160,10 @@ $('up').onclick=async()=>{
  if(!$('dob').value)return alert('Select your date of birth (18+ only)');
  const {data,error}=await sb.auth.signUp({email:pEmail(p),password:$('pw').value,options:{data:{birth_date:$('dob').value,phone:p}}});
  if(error)return alert(error.message.includes('already')?'This phone number is already registered. Please log in.':error.message);
+ if(data.session&&$('invc').value.trim()){
+  const {data:r,error:e2}=await sb.rpc('redeem_invite_code',{p_code:$('invc').value.trim()});
+  if(e2)alert('Account created, but invite code failed: '+e2.message);else alert('Account created! Bonus credited: '+fmt(r.bonus));
+ }
  data.session?location.reload():alert('Account created. Now log in.');
 };
 $('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
@@ -177,6 +204,10 @@ async function refresh(){
   $('hist').innerHTML=(h.data||[]).map(b=>{
    const st=b.status==='pending'?'<span class="mu">pending</span>':b.status==='won'?'<span class="W">+'+fmt(b.payout-b.stake)+'</span>':'<span class="L">-'+fmt(b.stake)+'</span>';
    return '<div class="r"><span>'+lbl(b)+' ('+fmt(b.stake)+')'+(b.rounds&&b.rounds.result!=null?' → '+b.rounds.result:'')+'</span>'+st+'</div>'}).join('')||'<div class="mu">No bets</div>';
+  if(window.Notification&&Notification.permission==='granted'){
+   (h.data||[]).forEach(b=>{if(b.status==='won'&&!S.seenWin.has(b.id)){S.seenWin.add(b.id);if(S.seenWinReady)new Notification('🎉 You won!',{body:'+'+fmt(b.payout-b.stake)+' TZS'})}});
+   S.seenWinReady=true;
+  }
   paint();
  }finally{S.busy=false}
 }
@@ -217,6 +248,8 @@ if(location.search.includes('deposit=done')){history.replaceState(null,'',locati
 let taps=[];const T=n=>fmt(n||0);
 $('logo').onclick=()=>{const n=Date.now();taps=taps.filter(t=>n-t<3000);taps.push(n);if(taps.length>=5){taps=[];openAdmin()}};
 async function openAdmin(){
+ loadInvites();
+ sb.rpc('admin_get_settings').then(({data})=>{if(data){$('sDaily').value=data.daily_bonus??'';$('sRefr').value=data.referral_bonus_referrer??'';$('sRefe').value=data.referral_bonus_referee??''}});
  const {data:s,error}=await sb.rpc('admin_stats');if(error)return;
  $('adm').classList.remove('hide');
  $('ast').innerHTML=[['Users',s.users],['Player balances',T(s.balances)],['Deposits',T(s.deposits)],['Withdrawals',T(s.withdrawals)],['Stakes',T(s.stakes)],['Payouts',T(s.payouts)],['Profit (stakes - payouts)',T(s.stakes-s.payouts)],['Zpending',s.pending_wd]]
@@ -230,6 +263,34 @@ $('au').onclick=async e=>{const id=e.target.dataset.adj;if(!id)return;const v=+d
  const {error}=await sb.rpc('admin_adjust',{p_user:id,p_delta:v});error?alert(error.message):openAdmin()};
 $('awd').onclick=async e=>{const ref=e.target.dataset.ref;if(!ref)return;
  const {error}=await sb.rpc('admin_resolve_withdrawal',{p_reference:ref,p_ok:e.target.dataset.ok==='1'});error?alert(error.message):openAdmin()};
+(async()=>{const {data,error}=await sb.rpc('top_winners_today');
+ $('lead').innerHTML=(!error&&data&&data.length)?data.map(x=>'<div class="r"><span>'+esc(x.masked)+'</span><span class="W">+'+fmt(x.net)+'</span></div>').join(''):'<div class="mu">No winners yet today — be the first!</div>';
+})();
+$('icGo').onclick=async()=>{
+ const code=$('icCode').value.trim(),bonus=+$('icBonus').value,uses=+$('icUses').value||1;
+ if(!code||!bonus)return alert('Enter a code and a bonus amount');
+ const {error}=await sb.rpc('admin_create_invite',{p_code:code,p_bonus:bonus,p_max_uses:uses});
+ if(error)return alert(error.message);
+ $('icCode').value='';$('icBonus').value='';$('icUses').value='1';loadInvites();
+};
+async function loadInvites(){
+ const {data}=await sb.rpc('admin_list_invites');
+ $('icList').innerHTML=(data||[]).map(x=>'<div class="r"><span>'+esc(x.code)+' · '+fmt(x.bonus)+' · '+x.used_count+'/'+x.max_uses+(x.active?'':' · off')+'</span><button class="ch" data-tog="'+esc(x.code)+'" data-now="'+(x.active?1:0)+'">'+(x.active?'Disable':'Enable')+'</button></div>').join('')||'<div class="mu">No codes yet</div>';
+}
+$('icList').onclick=async e=>{const c=e.target.dataset.tog;if(!c)return;
+ const {error}=await sb.rpc('admin_set_invite_active',{p_code:c,p_active:e.target.dataset.now==='0'});
+ error?alert(error.message):loadInvites()};
+$('daily').onclick=async()=>{$('daily').disabled=true;const {data,error}=await sb.rpc('claim_daily_bonus');$('daily').disabled=false;
+ error?alert(error.message):(alert('Bonus credited: +'+fmt(data)),refresh())};
+$('mycode').onclick=()=>{const t=$('mycode').textContent;if(t&&t!=='…'){navigator.clipboard?.writeText(t);alert('Referral code copied: '+t)}};
+(async()=>{const {data}=await sb.rpc('my_referral_code');if(data)$('mycode').textContent=data})();
+if(window.Notification&&Notification.permission==='default')
+ setTimeout(()=>{if(confirm('Enable win alerts on this device?'))Notification.requestPermission()},2000);
+$('sSave').onclick=async()=>{
+ const vals={daily_bonus:+$('sDaily').value,referral_bonus_referrer:+$('sRefr').value,referral_bonus_referee:+$('sRefe').value};
+ for(const k in vals){const {error}=await sb.rpc('admin_set_setting',{p_key:k,p_value:vals[k]});if(error)return alert(error.message)}
+ alert('Saved');
+};
 boot();
 </script>
 </body>
