@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NUMBERNOVA</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#0a0d1a;--cd:rgba(22,27,52,.72);--tx:#e8ecff;--mu:#8b93b8;--cy:#22d3ee;--pu:#a855f7;--bl:#3b82f6;--bd:rgba(120,140,255,.18);--ok:#4ade80;--no:#f87171;--grad:linear-gradient(135deg,var(--cy),var(--bl) 50%,var(--pu))}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--tx);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:radial-gradient(circle at 15% 10%,rgba(34,211,238,.16),transparent 40%),radial-gradient(circle at 85% 20%,rgba(168,85,247,.18),transparent 40%),radial-gradient(circle at 50% 100%,rgba(59,130,246,.15),transparent 50%),var(--bg);background-attachment:fixed}
+.w{max-width:1040px;margin:0 auto;padding:14px}
+h1{margin:6px 0 14px;font-size:22px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.5px}
+.c{background:var(--cd);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--bd);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.35);animation:rise .6s both;transition:.3s}
+.c:hover{border-color:rgba(34,211,238,.4);box-shadow:0 8px 34px rgba(34,211,238,.12)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.f{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.mu{color:var(--mu);font-size:13px}
+button,input{font:inherit;color:var(--tx)}
+button{-webkit-tap-highlight-color:transparent}
+button.o,.ch{border:1px solid var(--bd);background:rgba(255,255,255,.04);border-radius:12px;padding:12px 0;cursor:pointer;font-weight:600;transition:.2s}
+.ch{padding:10px 14px}
+button.o:hover,.ch:hover{transform:translateY(-3px) scale(1.04);border-color:var(--cy);box-shadow:0 0 18px rgba(34,211,238,.4);background:rgba(34,211,238,.1)}
+button.o:active,.ch:active,.go:active{transform:scale(.94)}
+.on{background:var(--grad)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 0 22px rgba(168,85,247,.6)!important;animation:pop .35s}
+@keyframes pop{50%{transform:scale(1.12)}}
+input{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-radius:12px;background:rgba(0,0,0,.28);outline:0;transition:.2s}
+input:focus{border-color:var(--cy);box-shadow:0 0 0 3px rgba(34,211,238,.2)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:10px}
+.go{width:100%;margin-top:12px;padding:14px;border:0;border-radius:14px;background:var(--grad);background-size:200% 200%;color:#fff;font-weight:700;cursor:pointer;transition:.25s;animation:flow 6s ease infinite;box-shadow:0 6px 22px rgba(59,130,246,.4)}
+.go:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(168,85,247,.5)}
+.go:disabled{opacity:.4;cursor:not-allowed;transform:none;animation:none}
+@keyframes flow{50%{background-position:100% 50%}}
+.timer{position:relative;width:170px;height:170px;margin:10px auto}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg);filter:drop-shadow(0 0 10px rgba(34,211,238,.5))}
+.timer circle{fill:none;stroke-width:8;stroke-linecap:round}
+.timer .bg{stroke:rgba(255,255,255,.08)}
+#ring{stroke:url(#g);stroke-dasharray:339.3;stroke-dashoffset:339.3;transition:stroke-dashoffset .3s linear}
+.t{position:absolute;inset:0;display:grid;place-items:center;font-size:38px;font-weight:800;font-variant-numeric:tabular-nums}
+.timer.urgent{animation:pulse .6s infinite}
+.timer.urgent #ring{stroke:var(--no)}
+@keyframes pulse{50%{transform:scale(1.05)}}
+.b{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--cy);font-weight:700;background:rgba(34,211,238,.08);animation:pop .5s}
+.b:nth-child(2n){border-color:var(--pu)}.b:nth-child(3n){border-color:var(--bl)}
+.r{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:14px;animation:rise .4s both}
+.W{color:var(--ok);font-weight:700}.L{color:var(--no);font-weight:700}.hide{display:none}
+#bal{font-size:26px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+#hist{max-height:420px;overflow-y:auto}
+@media(min-width:820px){#app{display:grid;grid-template-columns:1.2fr 1fr;gap:0 16px}#app>.c:first-child{grid-column:1/-1}.col2{grid-row:2/4;grid-column:2}}
+@media(max-width:420px){.g5{gap:6px}.timer{width:150px;height:150px}.t{font-size:32px}}
+h1{user-select:none;-webkit-user-select:none;cursor:default}
+select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-radius:12px;background:#12162b;color:var(--tx)}
+.md{position:fixed;inset:0;background:rgba(5,7,16,.82);backdrop-filter:blur(6px);display:grid;place-items:center;padding:14px;z-index:50;overflow:auto}
+.md>.c{width:100%;max-width:420px;margin:0}
+#adm>.c{max-width:900px;max-height:92vh;overflow:auto}
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:10px 0}
+.sc{padding:10px;border:1px solid var(--bd);border-radius:12px;background:rgba(255,255,255,.04)}
+.hide{display:none!important}
+</style>
+</head>
+<body><div class="w">
+<h1 id="logo">🎯 NUMBERNOVA</h1>
+
+<div class="c" id="auth">
+ <b>Log in / Sign up</b>
+ <input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password (min 6)">
+ <input id="dob" type="date"><div class="mu" style="margin-top:6px">Date of birth (sign-up only, 18+)</div>
+ <div class="g2"><button class="go" id="in">Log in</button><button class="go" id="up">Sign up</button></div>
+</div>
+
+<div id="app" class="hide">
+ <div class="c f"><div><div class="mu">💰 Balance</div><b id="bal">0</b></div>
+  <div><button class="ch" id="dep">Deposit</button> <button class="ch" id="wd">Withdraw</button> <button class="ch" id="out">Toka</button></div></div>
+ <div class="c">
+  <div class="g2" style="grid-template-columns:repeat(4,1fr);margin:0" id="rooms"></div>
+  <div class="mu" style="text-align:center;margin-top:12px" id="rid"></div>
+  <div class="timer" id="timer"><svg viewBox="0 0 120 120"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#3b82f6"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><circle class="bg" cx="60" cy="60" r="54"/><circle id="ring" cx="60" cy="60" r="54"/></svg><div class="t" id="t">--:--</div></div>
+  <div class="mu" style="text-align:center">Latest results</div>
+  <div class="f" style="justify-content:center;margin-top:8px" id="last"></div>
+ </div>
+ <div class="c">
+  <div class="mu">Odd/Even/Big/Small = 1.95x | Number = 9x</div>
+  <div class="g2"><button class="o" data-k="odd">Odd</button><button class="o" data-k="even">Even</button>
+   <button class="o" data-k="big">Big (5-9)</button><button class="o" data-k="small">Small (0-4)</button></div>
+  <div class="g5" id="nums"></div>
+  <div class="f" style="margin-top:10px"><input id="amt" type="number" value="1000" min="500" step="500" style="margin:0"></div>
+  <button class="go" id="bet">Place bet</button><div class="mu" id="msg" style="text-align:center;margin-top:8px"></div>
+ </div>
+ <div class="c col2"><b>📜 My bets</b><div id="hist"></div></div>
+</div>
+<div class="mu" style="text-align:center">18+ only. Play responsibly.</div>
+</div>
+
+<div class="md hide" id="mdep"><div class="c"><b>💳 Deposit</b>
+ <input id="damt" type="number" min="500" step="500" value="1000" placeholder="Amount (TZS, min 500)">
+ <button class="go" id="dgo">Continue to pay (Abliner)</button>
+ <button class="ch" style="margin-top:10px;width:100%" data-x>Close</button><div class="mu" id="dmsg" style="margin-top:8px"></div></div></div>
+<div class="md hide" id="mwd"><div class="c"><b>💸 Withdraw</b>
+ <select id="wm"><option value="mobile">Mobile money</option><option value="bank">Bank</option></select>
+ <input id="wr" inputmode="numeric" placeholder="Phone number (255712345678) / account number">
+ <select id="wb" class="bk hide"><option>CRDB</option><option>NMB</option><option>NBC</option><option>EQUITY</option><option>EXIM</option><option>STANBIC</option><option>DTB</option><option>AKIBA</option><option>AZANIA</option><option>BOA</option></select>
+ <input id="wn" class="bk hide" placeholder="Account name">
+ <input id="wa" type="number" min="1000" step="500" placeholder="Amount (min 1,000)">
+ <button class="go" id="wgo">Submit request</button>
+ <button class="ch" style="margin-top:10px;width:100%" data-x>Close</button><div class="mu" id="wmsg" style="margin-top:8px"></div></div></div>
+<div class="md hide" id="adm"><div class="c"><div class="f"><b>🛠 Admin NUMBERNOVA</b><button class="ch" data-x>Close</button></div>
+ <div class="sg" id="ast"></div><b>Players</b><div id="au"></div>
+ <b style="display:block;margin-top:14px">Recent deposits</b><div id="adp"></div>
+ <b style="display:block;margin-top:14px">Recent withdrawals</b><div id="awd"></div></div></div>
+
+<script>
+const SUPABASE_URL='https://xrgltdkkpleliqegoqha.supabase.co', SUPABASE_KEY='sb_publishable_yZZLusAInZ7-8bsUgIXswA_mro0CHAj';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=i=>document.getElementById(i), S={room:1,sel:null,round:null,off:0,busy:false};
+const msg=t=>$('msg').textContent=t, fmt=n=>Math.round(n).toLocaleString('en-US');
+const lbl=b=>b.kind==='num'?'Number '+b.pick:{odd:'Odd',even:'Even',big:'Big',small:'Small'}[b.kind];
+
+async function boot(){
+ const {data:{session}}=await sb.auth.getSession();
+ $('auth').classList.toggle('hide',!!session); $('app').classList.toggle('hide',!session);
+ if(!session)return;
+ const {data:n}=await sb.rpc('server_now'); S.off=new Date(n)-Date.now();
+ refresh(); setInterval(refresh,3000); setInterval(tick,250);
+}
+$('in').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});error?alert(error.message):location.reload()};
+$('up').onclick=async()=>{
+ const {data,error}=await sb.auth.signUp({email:$('em').value,password:$('pw').value,options:{data:{birth_date:$('dob').value}}});
+ if(error)return alert(error.message);
+ data.session?location.reload():alert('Check your email to confirm your account, then log in.');
+};
+$('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
+
+
+[1,2,3,5].forEach(r=>{const b=document.createElement('button');b.className='o';b.textContent=r+' min';b.dataset.r=r;
+ b.onclick=()=>{S.room=r;S.round=null;refresh()};$('rooms').appendChild(b)});
+for(let n=0;n<10;n++){const b=document.createElement('button');b.className='o';b.textContent=n;b.dataset.k='n'+n;$('nums').appendChild(b)}
+document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{S.sel=b.dataset.k;paint()});
+function paint(){
+ document.querySelectorAll('[data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k===S.sel));
+ document.querySelectorAll('#rooms button').forEach(b=>b.classList.toggle('on',+b.dataset.r===S.room));
+}
+
+function tick(){
+ const ring=$('ring');
+ if(!S.round){$('t').textContent='--:--';ring.style.strokeDashoffset=339.3;return}
+ const ms=new Date(S.round.ends_at)-(Date.now()+S.off), s=Math.max(0,Math.ceil(ms/1000));
+ $('t').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+ const tot=S.room*60, p=Math.min(1,Math.max(0,ms/1000/tot));
+ ring.style.strokeDashoffset=339.3*(1-p);
+ const lock=s<=5; $('timer').classList.toggle('urgent',lock&&s>0);
+ $('bet').disabled=lock; $('bet').textContent=lock?'Bets closed':'Place bet';
+ if(ms<=0&&!S.busy)refresh();
+}
+async function refresh(){
+ if(S.busy)return; S.busy=true;
+ try{
+  await sb.rpc('tick');
+  const [a,l,p,h]=await Promise.all([
+   sb.from('rounds').select('id,ends_at').eq('room',S.room).eq('status','open').order('id').limit(1),
+   sb.from('rounds').select('result').eq('room',S.room).eq('status','settled').order('id',{ascending:false}).limit(6),
+   sb.from('profiles').select('balance').maybeSingle(),
+   sb.from('bets').select('*,rounds(result)').order('id',{ascending:false}).limit(15)]);
+  S.round=a.data&&a.data[0]; $('rid').textContent=S.round?'Round #'+S.round.id:'';
+  $('last').innerHTML=(l.data||[]).map(x=>'<div class="b">'+x.result+'</div>').join('')||'<span class="mu">None yet</span>';
+  if(p.data)$('bal').textContent=fmt(p.data.balance);
+  $('hist').innerHTML=(h.data||[]).map(b=>{
+   const st=b.status==='pending'?'<span class="mu">pending</span>':b.status==='won'?'<span class="W">+'+fmt(b.payout-b.stake)+'</span>':'<span class="L">-'+fmt(b.stake)+'</span>';
+   return '<div class="r"><span>'+lbl(b)+' ('+fmt(b.stake)+')'+(b.rounds&&b.rounds.result!=null?' → '+b.rounds.result:'')+'</span>'+st+'</div>'}).join('')||'<div class="mu">No bets</div>';
+  paint();
+ }finally{S.busy=false}
+}
+$('bet').onclick=async()=>{
+ if(!S.sel)return msg('Choose a bet first');
+ const isN=S.sel[0]==='n'&&S.sel.length===2;
+ const {error}=await sb.rpc('place_bet',{p_room:S.room,p_kind:isN?'num':S.sel,p_pick:isN?+S.sel[1]:null,p_stake:+$('amt').value});
+ msg(error?error.message:'Bet placed'); refresh();
+};
+
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function call(fn,body){const {data,error}=await sb.functions.invoke(fn,{body});
+ if(error){let m='Failed';try{m=(await error.context.json()).error||m}catch{}return{error:m}}return{data}}
+document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>b.closest('.md').classList.add('hide'));
+$('dep').onclick=()=>$('mdep').classList.remove('hide');
+$('wd').onclick=()=>$('mwd').classList.remove('hide');
+$('wm').onchange=()=>document.querySelectorAll('.bk').forEach(e=>e.classList.toggle('hide',$('wm').value!=='bank'));
+$('dgo').onclick=async()=>{$('dgo').disabled=true;const r=await call('checkout',{amount:+$('damt').value});$('dgo').disabled=false;
+ if(r.error||!r.data.checkout_url){$('dmsg').textContent=r.error||'Failed';return}location.href=r.data.checkout_url};
+$('wgo').onclick=async()=>{$('wgo').disabled=true;
+ const r=await call('withdraw',{amount:+$('wa').value,method:$('wm').value,recipient:$('wr').value.trim(),bank_code:$('wb').value,account_name:$('wn').value.trim()});
+ $('wgo').disabled=false;$('wmsg').textContent=r.error||(r.data.pending?'Request received, under review':'Request sent ✓');refresh()};
+if(location.search.includes('deposit=done')){history.replaceState(null,'',location.pathname);setTimeout(()=>msg('Checking your payment, your balance will update shortly'),600)}
+
+/* Admin: tap NUMBERNOVA 5 times within 3 seconds (permission is checked server-side) */
+let taps=[];const T=n=>fmt(n||0);
+$('logo').onclick=()=>{const n=Date.now();taps=taps.filter(t=>n-t<3000);taps.push(n);if(taps.length>=5){taps=[];openAdmin()}};
+async function openAdmin(){
+ const {data:s,error}=await sb.rpc('admin_stats');if(error)return;
+ $('adm').classList.remove('hide');
+ $('ast').innerHTML=[['Users',s.users],['Player balances',T(s.balances)],['Deposits',T(s.deposits)],['Withdrawals',T(s.withdrawals)],['Stakes',T(s.stakes)],['Payouts',T(s.payouts)],['Profit (stakes - payouts)',T(s.stakes-s.payouts)],['Zpending',s.pending_wd]]
+  .map(x=>'<div class="sc"><div class="mu">'+x[0]+'</div><b>'+x[1]+'</b></div>').join('');
+ const [{data:u},{data:r}]=await Promise.all([sb.rpc('admin_users'),sb.rpc('admin_recent')]);
+ $('au').innerHTML=(u||[]).map(x=>'<div class="r"><span>'+esc(x.email)+' <span class="mu">'+T(x.balance)+'</span></span><span><input type="number" placeholder="±amount" data-u="'+esc(x.id)+'" style="width:95px;margin:0;display:inline;padding:6px"> <button class="ch" data-adj="'+esc(x.id)+'">OK</button></span></div>').join('');
+ $('adp').innerHTML=((r&&r.deposits)||[]).map(x=>'<div class="r"><span>'+esc(x.email)+' · '+T(x.amount)+'</span><span class="mu">'+esc(x.status)+'</span></div>').join('')||'<div class="mu">None</div>';
+ $('awd').innerHTML=((r&&r.withdrawals)||[]).map(x=>'<div class="r"><span>'+esc(x.email)+' · '+T(x.amount)+' · '+esc(x.method)+' '+esc(x.recipient)+'</span><span>'+(x.status==='pending'?'<button class="ch" data-ref="'+esc(x.reference)+'" data-ok="1">Paid</button> <button class="ch" data-ref="'+esc(x.reference)+'" data-ok="0">Refund</button>':'<span class="mu">'+esc(x.status)+'</span>')+'</span></div>').join('')||'<div class="mu">None</div>';
+}
+$('au').onclick=async e=>{const id=e.target.dataset.adj;if(!id)return;const v=+document.querySelector('[data-u="'+id+'"]').value;if(!v)return;
+ const {error}=await sb.rpc('admin_adjust',{p_user:id,p_delta:v});error?alert(error.message):openAdmin()};
+$('awd').onclick=async e=>{const ref=e.target.dataset.ref;if(!ref)return;
+ const {error}=await sb.rpc('admin_resolve_withdrawal',{p_reference:ref,p_ok:e.target.dataset.ok==='1'});error?alert(error.message):openAdmin()};
+boot();
+</script>
+</body>
+</html>
