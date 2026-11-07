@@ -75,7 +75,7 @@ select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-
   <div><button class="ch" id="dep">Deposit</button> <button class="ch" id="wd">Withdraw</button> <button class="ch" id="out">Log out</button></div></div>
  <div class="c f">
   <div><div class="mu">🎁 Daily bonus</div><button class="ch" id="daily">Claim</button></div>
-  <div style="text-align:right"><div class="mu">👥 Your referral code</div><b id="mycode" style="cursor:pointer" title="Tap to copy">…</b></div>
+  <div style="text-align:right"><div class="mu">👥 Invite a friend</div><button class="ch" id="mycode">…</button></div>
  </div>
  <div class="c">
   <div class="g2" style="grid-template-columns:repeat(4,1fr);margin:0" id="rooms"></div>
@@ -141,6 +141,8 @@ const msg=t=>$('msg').textContent=t, fmt=n=>Math.round(n).toLocaleString('en-US'
 const lbl=b=>b.kind==='num'?'Number '+b.pick:{odd:'Odd',even:'Even',big:'Big',small:'Small'}[b.kind];
 
 async function boot(){
+ const ref=new URLSearchParams(location.search).get('ref');
+ if(ref&&$('invc'))$('invc').value=ref.toUpperCase();
  const {data:{session}}=await sb.auth.getSession();
  $('auth').classList.toggle('hide',!!session); $('app').classList.toggle('hide',!session);
  if(!session)return;
@@ -275,15 +277,24 @@ $('icGo').onclick=async()=>{
 };
 async function loadInvites(){
  const {data}=await sb.rpc('admin_list_invites');
- $('icList').innerHTML=(data||[]).map(x=>'<div class="r"><span>'+esc(x.code)+' · '+fmt(x.bonus)+' · '+x.used_count+'/'+x.max_uses+(x.active?'':' · off')+'</span><button class="ch" data-tog="'+esc(x.code)+'" data-now="'+(x.active?1:0)+'">'+(x.active?'Disable':'Enable')+'</button></div>').join('')||'<div class="mu">No codes yet</div>';
+ $('icList').innerHTML=(data||[]).map(x=>'<div class="r"><span>'+esc(x.code)+' · '+fmt(x.bonus)+' · '+x.used_count+'/'+x.max_uses+(x.active?'':' · off')+'</span><span><button class="ch" data-link="'+esc(x.code)+'">Copy link</button> <button class="ch" data-tog="'+esc(x.code)+'" data-now="'+(x.active?1:0)+'">'+(x.active?'Disable':'Enable')+'</button></span></div>').join('')||'<div class="mu">No codes yet</div>';
 }
-$('icList').onclick=async e=>{const c=e.target.dataset.tog;if(!c)return;
+$('icList').onclick=async e=>{
+ const lk=e.target.dataset.link;
+ if(lk){navigator.clipboard?.writeText(location.origin+location.pathname+'?ref='+lk);return alert('Link copied for '+lk)}
+ const c=e.target.dataset.tog;if(!c)return;
  const {error}=await sb.rpc('admin_set_invite_active',{p_code:c,p_active:e.target.dataset.now==='0'});
  error?alert(error.message):loadInvites()};
 $('daily').onclick=async()=>{$('daily').disabled=true;const {data,error}=await sb.rpc('claim_daily_bonus');$('daily').disabled=false;
  error?alert(error.message):(alert('Bonus credited: +'+fmt(data)),refresh())};
-$('mycode').onclick=()=>{const t=$('mycode').textContent;if(t&&t!=='…'){navigator.clipboard?.writeText(t);alert('Referral code copied: '+t)}};
-(async()=>{const {data}=await sb.rpc('my_referral_code');if(data)$('mycode').textContent=data})();
+let myCode=null;
+$('mycode').onclick=async()=>{
+ if(!myCode)return;
+ const link=location.origin+location.pathname+'?ref='+myCode;
+ if(navigator.share){try{await navigator.share({title:'NUMBERNOVA',text:'Join NUMBERNOVA and get a sign-up bonus!',url:link});return}catch{}}
+ navigator.clipboard?.writeText(link); alert('Invite link copied:\n'+link);
+};
+(async()=>{const {data}=await sb.rpc('my_referral_code');if(data){myCode=data;$('mycode').textContent='Copy link ('+data+')'}})();
 if(window.Notification&&Notification.permission==='default')
  setTimeout(()=>{if(confirm('Enable win alerts on this device?'))Notification.requestPermission()},2000);
 $('sSave').onclick=async()=>{
