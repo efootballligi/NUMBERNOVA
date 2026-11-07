@@ -64,7 +64,7 @@ select{width:100%;padding:12px;margin-top:8px;border:1px solid var(--bd);border-
 
 <div class="c" id="auth">
  <b>Log in / Sign up</b>
- <input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password (min 6)">
+ <input id="em" type="tel" inputmode="tel" autocomplete="tel" placeholder="Phone number (e.g. 0712345678)"><input id="pw" type="password" placeholder="Password (min 6)">
  <input id="dob" type="date"><div class="mu" style="margin-top:6px">Date of birth (sign-up only, 18+)</div>
  <div class="g2"><button class="go" id="in">Log in</button><button class="go" id="up">Sign up</button></div>
 </div>
@@ -123,11 +123,20 @@ async function boot(){
  const {data:n}=await sb.rpc('server_now'); S.off=new Date(n)-Date.now();
  refresh(); setInterval(refresh,3000); setInterval(tick,250);
 }
-$('in').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});error?alert(error.message):location.reload()};
+const normPhone=v=>{let d=String(v).replace(/\D/g,'');if(d.startsWith('0'))d='255'+d.slice(1);else if(d.length===9)d='255'+d;return /^255[67]\d{8}$/.test(d)?d:null};
+const pEmail=p=>p+'@numbernova.app';
+$('in').onclick=async()=>{
+ const p=normPhone($('em').value); if(!p)return alert('Enter a valid phone number, e.g. 0712345678');
+ if(!$('pw').value)return alert('Enter your password');
+ const {error}=await sb.auth.signInWithPassword({email:pEmail(p),password:$('pw').value});
+ error?alert(error.message==='Invalid login credentials'?'Wrong phone number or password':error.message):location.reload()};
 $('up').onclick=async()=>{
- const {data,error}=await sb.auth.signUp({email:$('em').value,password:$('pw').value,options:{data:{birth_date:$('dob').value}}});
- if(error)return alert(error.message);
- data.session?location.reload():alert('Check your email to confirm your account, then log in.');
+ const p=normPhone($('em').value); if(!p)return alert('Enter a valid phone number, e.g. 0712345678');
+ if($('pw').value.length<6)return alert('Password must be at least 6 characters');
+ if(!$('dob').value)return alert('Select your date of birth (18+ only)');
+ const {data,error}=await sb.auth.signUp({email:pEmail(p),password:$('pw').value,options:{data:{birth_date:$('dob').value,phone:p}}});
+ if(error)return alert(error.message.includes('already')?'This phone number is already registered. Please log in.':error.message);
+ data.session?location.reload():alert('Account created. Now log in.');
 };
 $('out').onclick=async()=>{await sb.auth.signOut();location.reload()};
 
